@@ -7,6 +7,14 @@
 # http://shiny.rstudio.com/
 #
 
+# *===========================================================================*
+# *==================================== NB ===================================*
+# *===========================================================================*
+######## PLEASE SETWD TO LOCATION OF THE FOLDER THIS SCRIPT IS IN #############
+pwd = "/home/tristan/Documents/uct/repos/idm-shiny-app/shinyapp/"
+# *===========================================================================*
+# *==================================== NB ===================================*
+# *===========================================================================*
 library(deSolve)
 library(shiny)
 
@@ -15,6 +23,8 @@ library(shiny)
 # setwd("/home/tristan/Documents/uct/repos/masters-assignments/idm/")
 ## app.R ##
 library(shinythemes)
+
+
 
 # *===========================================================================*
 costing_sliders_1 <- function(){
@@ -40,7 +50,6 @@ costing_sliders_2 <- function(){
 # *===========================================================================*
 
 # *================================ Slider Rows ==============================*
-
 slider_tings <- function(){
     fluidRow(
         column(3,numericInput(inputId = "initP", label = "Initial population size", 
@@ -158,7 +167,7 @@ ui <-  fluidPage(
     navbarPage("Gonorrhea",
                tabPanel("Model",model_page()),
                tabPanel("Background",
-                        includeHTML("/home/tristan/Documents/uct/shinyapp/include.html"))
+                        includeHTML(paste(pwd,"include.html", sep="")))
                
     )
 )# end UI
@@ -226,7 +235,6 @@ combine_costs = function(delta1, delta2, eduCost, distCost, condomCost, trtCost,
                          I_w, I_m, beta_mm, beta_mw, beta_wm, beta_ww, alpha) {
     provider_with = provider_cost(delta1, delta2, eduCost, distCost, condomCost, trtCost, N_m, alpha)
     provider_without = provider_cost(delta1, delta2, eduCost, distCost, condomCost, trtCost, N_m)
-    print(provider_without)
     patient_with = patient_cost(delta1, N_m, alpha)
     patient_without = patient_cost(delta1, N_m)
     society_with = society_cost(wage, delta2, q1, q2, N, trtDays, natRecDays, I_w, I_m, N_w, N_m, beta_mm, beta_mw, beta_wm, beta_ww, alpha)
@@ -238,7 +246,6 @@ combine_costs = function(delta1, delta2, eduCost, distCost, condomCost, trtCost,
     den = denominator(I_w, N_w, I_m, N_m, beta_mm, beta_mw, beta_wm, beta_ww, alpha) - denominator(I_w, N_w, I_m, N_m, beta_mm, beta_mw, beta_wm, beta_ww)
     saved = diff/den
     tab = rbind(with, without, diff, saved)
-    print(tab)
     cols = c("Education", "Condom supply and distribution", "Total",
              "Condom purchases", "Total",
              "Treatment", "Time spent buying condoms", "Time spent in treatment", "Time spent recovering naturally", "Total")
