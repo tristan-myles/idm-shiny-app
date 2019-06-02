@@ -44,7 +44,12 @@ costing_sliders_2 <- function(){
           sliderInput(inputId="proportionBuy",label="Proportion who buy condoms",
                        value=20, min=0, max=100, step=1),
            sliderInput(inputId="proportionEducate",label="Proportion of men who are educated",
-                       value=20, min=0, max=100, step=1)
+                       value=20, min=0, max=100, step=1),
+          br(),
+          br(),
+          checkboxInput(inputId="boolPatient", label="Show Patient Costs", value=TRUE),
+          checkboxInput(inputId="boolSociety", label="Show Societal Costs", value=TRUE),
+          checkboxInput(inputId="boolProvider", label="Show Provider Costs", value=TRUE)
     )
 }
 # *===========================================================================*
@@ -52,7 +57,8 @@ costing_sliders_2 <- function(){
 # *================================ Slider Rows ==============================*
 slider_tings <- function(){
     fluidRow(
-        column(3,numericInput(inputId = "initP", label = "Initial population size", 
+        column(3, align="center",
+               numericInput(inputId = "initP", label = "Initial population size", 
                               value =36500, min = 100, max=1000000, step=100),
                sliderInput(
                    inputId="lifExp", label = "Average number of deaths p.a.",
@@ -63,7 +69,7 @@ slider_tings <- function(){
                    value=100, min=1, max=1000, step=10
                )# mu_b
         ),
-        column(3,
+        column(3, align="center",
                
                sliderInput(
                    inputId="betaMW", label = "Contact rate of men with women",
@@ -81,7 +87,7 @@ slider_tings <- function(){
                    value=0.5, min=0, max=1, step=0.05
                )# beta matrix
         ),
-        column(3,
+        column(3, align="center",
                
                sliderInput(
                    inputId="natRec", label = "Average natural recovery time (days)",
@@ -100,7 +106,7 @@ slider_tings <- function(){
                    value=7, min=1, max=700, step=1
                ) # tau
         ),
-        column(3,
+        column(3, align="center", 
                sliderInput(
                    inputId="pAbsTreat", label = "Percentage of abstinence during treatment",
                    value=90, min=0, max=100, step=1
@@ -125,29 +131,30 @@ model_page <- function(){
     fluidRow(
         fluidRow(
 # *================================ Main Panel ===============================*
-            fluidRow(
+            fluidRow(column(12, align="center",style='margin-bottom:30px;
+                            padding-top: 10px;
+                            padding-bottom: 10px;
+                            padding-left: 50px;
+                            padding-right: 50px;',
                        tabsetPanel(id="panels",
-                           tabPanel("Summary",
-                                    fluidRow(
-                                        column(4),
-                                        column(8,
-                                               style='margin-bottom:30px;border-left:1px solid; padding: 5px;'
-                                        ))),
                            tabPanel("Population",fluidRow(column(4),
-                                                          column(8,
-                                    plotOutput(outputId = "Plot"),
+                                                          column(8,align="center",
+                                    plotOutput(outputId = "Plot", width = "80%"),
                                     style='margin-bottom:30px;border-left:1px solid; padding: 5px;'
                                     )
                                     )),
-                           tabPanel("Cost", fluidRow(
+                           tabPanel("Cost", 
+                                    fluidRow(
                                         costing_sliders_1(),
                                         costing_sliders_2(),
-                                        column(5, tableOutput(outputId= "costTable"),
-                                               style='margin-bottom:30px;border-left:1px solid; padding: 5px;'),
-                                        column(3, plotOutput(outputId = "costPlot"))
+                                        column(8, align="center",style='margin-bottom:30px;border-left:1px solid; padding: 5px;',
+                                               tabsetPanel(id="panels",
+                                                           tabPanel("Table", tableOutput(outputId= "costTable")),
+                                                           tabPanel("Tornado", plotOutput(outputId = "costPlot", width = "85%"))))
                            )
                            )
                        )
+            )# End upper Col
                            )# End upper fluid row
 # *===========================================================================*
         ),# end lower fluid row
@@ -165,10 +172,9 @@ model_page <- function(){
 ui <-  fluidPage(
     theme = shinytheme("flatly"),
     navbarPage("Gonorrhea",
-               tabPanel("Model",model_page()),
                tabPanel("Background",
-                        includeHTML(paste(pwd,"include.html", sep="")))
-               
+                        includeHTML(paste(pwd,"include.html", sep=""))),
+               tabPanel("Model",model_page())
     )
 )# end UI
 
@@ -209,6 +215,7 @@ SITR <- function(t, x, parms)  {
 
 # *=============================== Costings Code =============================*
 provider_cost = function(delta1, delta2, eduCost, distCost, condomCost, trtCost, N_m, alpha=0) {
+#### No trtCost
     education = eduCost*delta2*alpha*N_m 
     condoms = (condomCost+distCost)*(1-delta1)*alpha*N_m 
     return(c(education, condoms))
@@ -216,10 +223,10 @@ provider_cost = function(delta1, delta2, eduCost, distCost, condomCost, trtCost,
 patient_cost = function(delta1, N_m, alpha=0) {
     delta1*alpha*N_m
 }
-society_cost = function(wage, delta2, q1, q2, N, trtDays, natRecDays, I_w, I_m, N_w, N_m, beta_mm, beta_mw, beta_wm, beta_ww, alpha=0) {
+society_cost = function(wage, delta2, q1, q2, N, trtDays, trtCost, natRecDays, I_w, I_m, N_w, N_m, beta_mm, beta_mw, beta_wm, beta_ww, alpha=0) {
     lambda_w = (1-alpha)*beta_wm*(I_m/N_m) + beta_ww*(I_w/N_w)
     lambda_m = (1-alpha)*(beta_mm*(I_m/N_m) + beta_mw*(I_w/N_w))
-    treatment = 500*(1-q2)*(lambda_w*N_w + lambda_m*N_m)
+    treatment = trtCost*(1-q2)*(lambda_w*N_w + lambda_m*N_m)
     oppcost_of_condoms = 0.5*wage*(delta2 + 1)*alpha*N_m
     oppcost_of_treatment = 8*(1-q2)*trtDays*wage*(lambda_w*N_w + lambda_m*N_m)
     oppcost_of_nat_recovery = 8*q1*natRecDays*wage*(lambda_w*N_w + lambda_m*N_m)
@@ -237,8 +244,8 @@ combine_costs = function(delta1, delta2, eduCost, distCost, condomCost, trtCost,
     provider_without = provider_cost(delta1, delta2, eduCost, distCost, condomCost, trtCost, N_m)
     patient_with = patient_cost(delta1, N_m, alpha)
     patient_without = patient_cost(delta1, N_m)
-    society_with = society_cost(wage, delta2, q1, q2, N, trtDays, natRecDays, I_w, I_m, N_w, N_m, beta_mm, beta_mw, beta_wm, beta_ww, alpha)
-    society_without = society_cost(wage, delta2, q1, q2, N, trtDays, natRecDays, I_w, I_m, N_w, N_m, beta_mm, beta_mw, beta_wm, beta_ww)
+    society_with = society_cost(wage, delta2, q1, q2, N, trtDays, trtCost, natRecDays, I_w, I_m, N_w, N_m, beta_mm, beta_mw, beta_wm, beta_ww, alpha)
+    society_without = society_cost(wage, delta2, q1, q2, N, trtDays, trtCost, natRecDays, I_w, I_m, N_w, N_m, beta_mm, beta_mw, beta_wm, beta_ww)
     
     with = c(provider_with, sum(provider_with), patient_with, sum(patient_with), society_with, sum(society_with))
     without = c(provider_without, sum(provider_without), patient_without, sum(patient_without), society_without, sum(society_without)) 
@@ -249,11 +256,11 @@ combine_costs = function(delta1, delta2, eduCost, distCost, condomCost, trtCost,
     cols = c("Education", "Condom supply and distribution", "Total",
              "Condom purchases", "Total",
              "Treatment", "Time spent buying condoms", "Time spent in treatment", "Time spent recovering naturally", "Total")
-    rows = c("With condom use", "Without condom use", "Difference", "Money saved due to condom use")
+    rows = c(" ","With condom use", "Without condom use", "Difference", "Money saved due to condom use")
     
     tab = round(tab, 2)
-    colnames(tab) = c("Provider", "", "", "Patient", "", "Society", "", "", "", "")
-    tab[1, ] = cols
+    colnames(tab) = c("Provider", " ", " ", "Patient", " ", "Society", " ", " ", " ", " ")
+    tab = rbind(cols,tab)
     rownames(tab) = rows
     tab
 }
@@ -343,9 +350,18 @@ server <- function(input, output) {
     beta_mm = reactive(input$betaMM)
     beta_mw = reactive(input$betaMW)
     alpha= reactive(input$pCondoms/100)
-    
+
+    showProvider=reactive(input$boolProvider)
+    showPatient=reactive(input$boolPatient)
+    showSociety=reactive(input$boolSociety)
+
+    provider_cols = c(1,2)
+    patient_cols = c(4)
+    society_cols = c(6,7,8,9)
+
     # Create a table
-    output$costTable <- renderTable(
+    output$costTable <- renderTable(striped = TRUE, bordered = TRUE,  
+                                    hover = TRUE, rownames = TRUE,width = "90%",
         {
             initP <- reactive(input$initP)
             initPw <- (input$pWomenMen/100) * initP()
@@ -367,7 +383,8 @@ server <- function(input, output) {
             run_d<-reactive(ode(times=times, y=start, func=SITR, parms=parametersR()))
             run <- run_d()
             end_row <- NROW(run)
-            head(combine_costs(
+
+            table_out<- combine_costs(
                 delta1=delta1()/100,
                 delta2=delta2()/100,
                 eduCost=as.double(eduCost()),
@@ -389,17 +406,124 @@ server <- function(input, output) {
                 beta_mm = beta_mm(),
                 beta_mw = beta_mw(),
                 alpha = alpha()
-            ))
+            )
+
+            if(!showProvider()){
+                table_output_1<-NULL
+            }else{
+                table_output_1<-table_out[,c(provider_cols,3)]
+            }
+            if(!showPatient()){
+                table_output_2<-NULL
+            }else{
+                table_output_2<-table_out[,c(patient_cols,5)]
+            }
+            if(!showSociety()){
+                table_output_3<-NULL
+            }else{
+                table_output_3<-table_out[,c(society_cols,10)]
+                
+            }
+            cbind(table_output_1,table_output_2,table_output_3)
         }
         ) # End of renderTable  
 
-    xx <- seq(1,10)
     # Create a plot
     output$costPlot <- renderPlot(
         {
-            plot(xx)
+            initP <- reactive(input$initP)
+            initPw <- (input$pWomenMen/100) * initP()
+            initPm <- initP() - initPw
+            
+            initIw <- 1
+            initTw <- 0
+            initRw <- 0
+            initSw <- initPw - initIw - initRw
+            
+            initIm <- 1
+            initTm <- 0
+            initRm <- 0
+            initSm <- initPm - initIm - initRm
+            
+            start<-c(S_w=initSw, I_w=initIw, T_w=initTw, R_w=initRw,
+                     S_m=initSm, I_m=initIm, T_m=initTm, R_m=initRm) 
+            
+            run_d<-reactive(ode(times=times, y=start, func=SITR, parms=parametersR()))
+            run <- run_d()
+            end_row <- NROW(run)
+
+           table_out<-combine_costs(
+               delta1=delta1()/100,
+               delta2=delta2()/100,
+               eduCost=as.double(eduCost()),
+               distCost=as.double(distCost()),
+               condomCost=as.double(condomCost()),
+               trtCost=as.double(trtCost()),
+               N_w=run[end_row,2]+run[end_row,3]+run[end_row,4]+run[end_row,5],
+               N_m=run[end_row,6]+run[end_row,7]+run[end_row,8]+run[end_row,9],
+               N=N_w+N_m,
+               trtDays=trtDays(),
+               natRecDays = natRecDays(),
+               q1 = q1(),
+               q2 = q2(),
+               wage=as.double(wage()),
+               I_w=run[end_row,3],
+               I_m=run[end_row,8],
+               beta_wm = beta_wm(),
+               beta_ww = beta_ww(),
+               beta_mm = beta_mm(),
+               beta_mw = beta_mw(),
+               alpha = alpha()
+           )
+
+           if(!showProvider()){
+               table_output_1<-NULL
+               col_names_1 <- NULL
+           }else{
+               table_output_1<-table_out[,provider_cols]
+               col_names_1 <- table_out[1,provider_cols]
+           }
+           if(!showPatient()){
+               table_output_2 <- NULL
+               col_names_2 <- NULL
+           }else{
+               table_output_2<-table_out[,patient_cols]
+               col_names_2 <- table_out[1,patient_cols]
+           }
+           if(!showSociety()){
+               table_output_3<-NULL
+               col_names_3 <- NULL
+           }else{
+               table_output_3<-table_out[,society_cols]
+               col_names_3 <- table_out[1,society_cols]
+           }
+
+           table_out <- cbind(table_output_1,table_output_2,table_output_3)
+           col_names <- c(col_names_1,col_names_2,col_names_3)
+           if(is.null(col_names)){
+               NULL
+           }
+           else{
+           table_out <- t(apply(table_out[-1,], MARGIN=1, FUN=as.double))
+           num_cols <- NCOL(table_out)
+           num_rows <- NROW(table_out)
+           
+           temp_pos <- apply(table_out, MARGIN=1, function(x) ifelse(x>=0,x,0))
+           temp_neg <- apply(table_out, MARGIN=1, function(x) ifelse(x<0,x,0))
+           new_table <- cbind(temp_pos[,num_rows], temp_neg[,num_rows])
+           table_out <- t(as.matrix(new_table, ncol=num_cols))
+
+           colnames(table_out) <- col_names
+
+           x_axis <- range(table_out)
+
+           par(mar=c(5.1,14.1,4.1,2.1))
+           barplot(table_out, horiz = T, las=1, xaxt='n', ylab = '',
+                   beside=T, col=c('springgreen','indianred2'), main="Costs in $")
+           axis(1, at=pretty(x_axis),  lab=paste0(pretty(x_axis),"$"), las=TRUE)
+           }
         }
-    ) # End of renderTable  
+    ) # End of renderPlot  
     } # End of Server
 # *===========================================================================*
 # Run the application 
