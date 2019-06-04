@@ -7,14 +7,6 @@
 # http://shiny.rstudio.com/
 #
 
-# *===========================================================================*
-# *==================================== NB ===================================*
-# *===========================================================================*
-######## PLEASE SETWD TO LOCATION OF THE FOLDER THIS SCRIPT IS IN #############
-pwd = "/home/tristan/Documents/uct/repos/idm-shiny-app/shinyapp/"
-# *===========================================================================*
-# *==================================== NB ===================================*
-# *===========================================================================*
 library(deSolve)
 library(shiny)
 library(shinythemes)
@@ -168,7 +160,7 @@ ui <-  fluidPage(
     theme = shinytheme("flatly"),
     navbarPage("Gonorrhoea",
                tabPanel("Background",
-                        includeHTML(paste(pwd,"include.html", sep=""))),
+                        includeHTML("include.html")),
                tabPanel("Model",model_page())
     )
 )# end UI
